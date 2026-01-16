@@ -65,9 +65,7 @@ public class FeatureDump {
         FrequencyVector opVec2 = OperatorAnalyzer.toVector(opMap2);
         double opSim = FrequencyVector.cosineSimilarity(opVec1, opVec2);
 
-        HashMap<Integer> idMap1 = IdentifierAnalyzer.analyzeNormalized(tokens1);
-        HashMap<Integer> idMap2 = IdentifierAnalyzer.analyzeNormalized(tokens2);
-        double idSim = cosineSimilaritySparseCounts(idMap1, idMap2);
+        double idSim = identifierSequenceNGramSimilarity(tokens1, tokens2);
 
         double seq2 = normalizedTokenNGramCosine(tokens1, tokens2, 2);
         double seq3 = normalizedTokenNGramCosine(tokens1, tokens2, 3);
@@ -80,6 +78,19 @@ public class FeatureDump {
         double lenSim = tokenLengthSimilarity(tokens1.size(), tokens2.size());
 
         return new Features(kwSim, idSim, opSim, seqSim, lenSim, tokens1.size(), tokens2.size(), seq2, seq3, seq4, seq5, seq6, seq7, seq8);
+    }
+
+    private static double identifierSequenceNGramSimilarity(ArrayList<String> tokens1, ArrayList<String> tokens2) {
+        ArrayList<String> ids1 = IdentifierAnalyzer.normalizedIdentifierSequence(tokens1);
+        ArrayList<String> ids2 = IdentifierAnalyzer.normalizedIdentifierSequence(tokens2);
+
+        double s2 = cosineSimilaritySparseCounts(NGramAnalyzer.analyzeNGrams(ids1, 2), NGramAnalyzer.analyzeNGrams(ids2, 2));
+        double s3 = cosineSimilaritySparseCounts(NGramAnalyzer.analyzeNGrams(ids1, 3), NGramAnalyzer.analyzeNGrams(ids2, 3));
+        double s4 = cosineSimilaritySparseCounts(NGramAnalyzer.analyzeNGrams(ids1, 4), NGramAnalyzer.analyzeNGrams(ids2, 4));
+        double s5 = cosineSimilaritySparseCounts(NGramAnalyzer.analyzeNGrams(ids1, 5), NGramAnalyzer.analyzeNGrams(ids2, 5));
+        double s6 = cosineSimilaritySparseCounts(NGramAnalyzer.analyzeNGrams(ids1, 6), NGramAnalyzer.analyzeNGrams(ids2, 6));
+
+        return 0.10 * s2 + 0.15 * s3 + 0.20 * s4 + 0.25 * s5 + 0.30 * s6;
     }
 
     private static double normalizedTokenNGramCosine(ArrayList<String> tokens1, ArrayList<String> tokens2, int n) {

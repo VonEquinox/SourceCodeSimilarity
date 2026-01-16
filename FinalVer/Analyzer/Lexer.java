@@ -18,16 +18,18 @@ public class Lexer {
         ArrayList<String> tokens = new ArrayList<>();
         int i = 0;
 
+        // 遍历整个源代码字符串
         while (i < code.length()) {
             char c = code.charAt(i);
 
-            // 跳过空白字符
+            // 1. 跳过空白字符（空格、换行、制表符等）
             if (Character.isWhitespace(c)) {
                 i++;
                 continue;
             }
 
-            // 标识符或关键字
+            // 2. 识别标识符或关键字
+            // Java 标识符必须以字母或下划线开头
             if (Character.isLetter(c) || c == '_') {
                 StringBuilder sb = new StringBuilder();
                 while (i < code.length() && (Character.isLetterOrDigit(code.charAt(i)) || code.charAt(i) == '_')) {
@@ -38,7 +40,8 @@ public class Lexer {
                 continue;
             }
 
-            // 数字
+            // 3. 识别数字字面量
+            // 相似度分析中通常不关心具体数值，因此扫描后跳过，不存入 Token 列表
             if (Character.isDigit(c)) {
                 while (i < code.length() && (Character.isDigit(code.charAt(i)) || code.charAt(i) == '.')) {
                     i++;
@@ -46,7 +49,8 @@ public class Lexer {
                 continue;
             }
 
-            // 运算符
+            // 4. 尝试匹配运算符（如 ++, +=, ==, -> 等）
+            // 采用“最长匹配”原则，优先匹配 3 字符和 2 字符的运算符
             String op = tryMatchOperator(code, i);
             if (op != null) {
                 tokens.append(op);
@@ -54,7 +58,7 @@ public class Lexer {
                 continue;
             }
 
-            // 其他字符
+            // 5. 忽略无法识别的单个字符（如非法符号）
             i++;
         }
 

@@ -1,0 +1,71 @@
+%%{init: {'flowchart': {'curve': 'stepAfter', 'nodeSpacing': 120, 'rankSpacing': 80}}}%%
+flowchart TD
+    %% ===== 样式定义 =====
+    classDef empty width:0px,height:0px
+    classDef startEnd fill:#90EE90,stroke:#2d6a2d,stroke-width:2px
+    classDef process fill:#E6E6FA,stroke:#666,stroke-width:1px
+    classDef decision fill:#FFFACD,stroke:#b8860b,stroke-width:1px
+    classDef input fill:#e1f5fe,stroke:#0288d1
+    classDef preprocess fill:#fff3e0,stroke:#f57c00
+    classDef feature fill:#f3e5f5,stroke:#7b1fa2
+    classDef calc fill:#e8f5e9,stroke:#388e3c
+    classDef output fill:#ffebee,stroke:#c62828
+
+    %% ===== 节点定义 =====
+    start([开始]):::startEnd
+    input1[/读取 Java 源文件 1/]:::input
+    input2[/读取 Java 源文件 2/]:::input
+    J1[ ]:::empty
+
+    preprocess[预处理 Preprocessor.process]:::preprocess
+    lexer[词法分析 Lexer.tokenize]:::preprocess
+
+    J2[ ]:::empty
+    kwAnalyze[关键字分析 KeywordAnalyzer]:::feature
+    idAnalyze[标识符分析 IdentifierAnalyzer]:::feature
+    opAnalyze[运算符分析 OperatorAnalyzer]:::feature
+    seqAnalyze[N-Gram序列分析 NGramAnalyzer]:::feature
+    lenAnalyze[长度分析 TokenLength]:::feature
+    J3[ ]:::empty
+
+    kwSim[关键字相似度 kwSim]:::calc
+    idSim[标识符相似度 idSim]:::calc
+    opSim[运算符相似度 opSim]:::calc
+    seqSim[序列相似度 seqSim]:::calc
+    lenSim[长度相似度 lenSim]:::calc
+    J4[ ]:::empty
+
+    weighted[加权综合计算]:::calc
+    result[/输出相似度 0.0~1.0/]:::output
+    finish([结束]):::startEnd
+
+    %% ===== 连接关系 =====
+    start --- J1
+    J1 --> input1
+    J1 --> input2
+
+    input1 --- J1a[ ]:::empty
+    input2 --- J1a
+    J1a --> preprocess
+    preprocess --> lexer
+
+    lexer --- J2
+    J2 --> kwAnalyze
+    J2 --> idAnalyze
+    J2 --> opAnalyze
+    J2 --> seqAnalyze
+    J2 --> lenAnalyze
+
+    kwAnalyze --> kwSim
+    idAnalyze --> idSim
+    opAnalyze --> opSim
+    seqAnalyze --> seqSim
+    lenAnalyze --> lenSim
+
+    kwSim --- J4
+    idSim --- J4
+    opSim --- J4
+    seqSim --- J4
+    lenSim --- J4
+    J4 --> weighted
+    weighted --> result --> finish

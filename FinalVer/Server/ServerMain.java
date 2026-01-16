@@ -46,15 +46,22 @@ public class ServerMain {
         System.out.println("Server running on http://localhost:" + port);
     }
 
+    /**
+     * 相似度请求处理器
+     * 处理来自前端的 POST 请求，计算两段代码的相似度并返回 JSON 结果。
+     */
     private static class SimilarityHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
+            // 仅允许 POST 请求
             if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
                 sendText(exchange, 405, "Method Not Allowed");
                 return;
             }
 
+            // 读取请求体（JSON 格式）
             String body = readBody(exchange.getRequestBody());
+            // 手动解析 JSON 字段（避免引入第三方 JSON 库）
             String code1 = getValue(body, "code1");
             String code2 = getValue(body, "code2");
 
@@ -63,12 +70,19 @@ public class ServerMain {
                 return;
             }
 
+            // 调用核心算法计算相似度
             double similarity = SimilarityCalculator.calculate(code1, code2);
+            
+            // 构造响应 JSON
             String json = String.format(Locale.US, "{\"similarity\":%.6f}", similarity);
             sendJson(exchange, 200, json);
         }
     }
 
+    /**
+     * 静态文件处理器
+     * 负责将 Web 目录下的 HTML, JS, CSS 等资源映射到 HTTP 服务。
+     */
     private static class StaticFileHandler implements HttpHandler {
         private final Path webRoot;
 
@@ -84,16 +98,19 @@ public class ServerMain {
             }
 
             String path = exchange.getRequestURI().getPath();
+            // 默认访问 index.html
             if (path == null || path.isEmpty() || "/".equals(path)) {
                 path = "/index.html";
             }
 
+            // 路径安全检查，防止目录穿越攻击
             Path file = webRoot.resolve(path.substring(1)).normalize();
             if (!file.startsWith(webRoot) || Files.isDirectory(file) || !Files.exists(file)) {
                 sendText(exchange, 404, "Not Found");
                 return;
             }
 
+            // 读取文件内容并发送
             byte[] data = Files.readAllBytes(file);
             Headers headers = exchange.getResponseHeaders();
             headers.set("Content-Type", contentType(file));

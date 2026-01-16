@@ -33,8 +33,15 @@ public class HashMap<V> {
     }
 
     /**
-     * 双哈希函数
-     * 使用两个不同的质数131和137作为基数，减少哈希冲突
+     * 双哈希函数 (Double Hashing Concept)
+     * 
+     * 设计思路：
+     * 为了在不使用 Java 标准库的情况下保证哈希表的性能，我们使用了两个不同的质数（131 和 137）作为基数。
+     * 1. h1 和 h2 分别计算字符串的哈希值。
+     * 2. 将两个 32 位哈希值组合成一个 64 位的 long 值。
+     * 
+     * 这种方式极大地降低了不同字符串产生相同哈希索引（哈希碰撞）的概率，
+     * 确保了在处理大量 Token（如 N-gram 组合）时，哈希表的查询效率接近 O(1)。
      */
     private long doubleHash(String key) {
         if (key == null) return 0;
@@ -47,19 +54,22 @@ public class HashMap<V> {
     }
 
     /**
-     * 计算哈希值
+     * 计算哈希桶索引
      */
     private int hash(String key) {
         if (key == null) return 0;
         long h = doubleHash(key);
+        // 取模运算定位到具体的桶，处理负数情况
         int index = (int) (h % capacity);
         return index < 0 ? index + capacity : index;
     }
 
     /**
      * 插入或更新键值对
+     * 采用“链地址法”解决冲突：每个桶位是一个单向链表
      */
     public void put(String key, V value) {
+        // 检查负载因子，必要时进行 2 倍扩容
         if ((float) size / capacity >= LOAD_FACTOR) {
             resize();
         }
@@ -67,15 +77,17 @@ public class HashMap<V> {
         int index = hash(key);
         HashEntry<String, V> entry = buckets[index];
 
+        // 遍历链表，寻找是否存在相同的键
         while (entry != null) {
             if (entry.key == null && key == null ||
                 entry.key != null && entry.key.equals(key)) {
-                entry.setValue(value);
+                entry.setValue(value); // 键已存在，更新值
                 return;
             }
             entry = entry.next;
         }
 
+        // 键不存在，创建新节点并插入到链表头部（头插法）
         HashEntry<String, V> newEntry = new HashEntry<>(key, value);
         newEntry.next = buckets[index];
         buckets[index] = newEntry;

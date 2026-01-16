@@ -30,8 +30,15 @@ public class IdentifierAnalyzer {
 
     /**
      * 对标识符做“按首次出现顺序编号”的归一化，并统计频度。
-     * 例：第一个出现的标识符 -> ID0，第二个 -> ID1，...
-     * 目的：提高对纯重命名的鲁棒性，同时保留“哪个标识符更常用”的结构差异。
+     * 
+     * 算法原理：
+     * 1. 维护一个 idMap，记录“原变量名”到“流水号 IDk”的映射。
+     * 2. 遍历 Token 流，遇到第一个新变量 a，映射为 ID0；遇到第二个新变量 b，映射为 ID1。
+     * 3. 再次遇到 a 时，依然映射为 ID0。
+     * 
+     * 目的：
+     * 这种映射方式使得代码逻辑结构（如：变量定义、赋值、循环引用）被抽象为 ID 序列，
+     * 即使攻击者将所有变量名全局替换，生成的 ID 序列依然完全一致，从而实现极强的抗重命名能力。
      */
     public static HashMap<Integer> analyzeNormalized(ArrayList<String> tokens) {
         HashMap<Integer> freqMap = new HashMap<>();
@@ -46,6 +53,7 @@ public class IdentifierAnalyzer {
 
             Integer existing = idMap.get(token);
             if (existing == null) {
+                // 发现新标识符，分配下一个流水号
                 existing = nextId++;
                 idMap.put(token, existing);
             }
@@ -56,6 +64,31 @@ public class IdentifierAnalyzer {
         }
 
         return freqMap;
+    }
+
+    /**
+     * 提取“标识符 token 序列”，并按首次出现顺序归一化为 ID0/ID1/...
+     * 例：a b a c -> ID0 ID1 ID0 ID2
+     */
+    public static ArrayList<String> normalizedIdentifierSequence(ArrayList<String> tokens) {
+        ArrayList<String> seq = new ArrayList<>();
+        HashMap<Integer> idMap = new HashMap<>();
+        int nextId = 0;
+
+        for (int i = 0; i < tokens.size(); i++) {
+            String token = tokens.get(i);
+            if (!isIdentifier(token)) {
+                continue;
+            }
+            Integer existing = idMap.get(token);
+            if (existing == null) {
+                existing = nextId++;
+                idMap.put(token, existing);
+            }
+            seq.append("ID" + existing);
+        }
+
+        return seq;
     }
 
     /**

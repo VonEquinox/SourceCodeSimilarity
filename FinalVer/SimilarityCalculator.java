@@ -7,16 +7,22 @@ import Constants.JavaConstants;
 /**
  * 相似度计算器
  * 核心入口：计算两个Java源代码的相似度
+ * 
+ * 该类采用多维度加权融合算法：
+ * 1. 关键字频度 (KEYWORD)：反映编程语言基础构件的使用分布。
+ * 2. 标识符序列 (IDENTIFIER)：反映变量和函数调用的逻辑顺序，抗重命名。
+ * 3. 运算符频度 (OPERATOR)：反映计算逻辑和控制流的复杂度。
+ * 4. Token序列 (SEQUENCE)：通过N-gram捕捉局部代码块的结构特征。
+ * 5. 代码长度 (LENGTH)：衡量两份代码在规模上的对等性。
  */
 public class SimilarityCalculator {
 
-    // 权重配置
-    // 由 `fit_weights.py --labels labels_all.json` 拟合得到（kw/id/op/seq/len，且权重和为1）
-    private static final double KEYWORD_WEIGHT = 0.241617;
-    private static final double IDENTIFIER_WEIGHT = 0.106786;
-    private static final double OPERATOR_WEIGHT = 0.194093;
-    private static final double SEQUENCE_WEIGHT = 0.176877;
-    private static final double LENGTH_WEIGHT = 0.280627;
+    // 权重配置：由 fit_weights_torch.py 训练得到，总和为1
+    private static final double KEYWORD_WEIGHT = 0.368208;
+    private static final double IDENTIFIER_WEIGHT = 0.055308;
+    private static final double OPERATOR_WEIGHT = 0.118788;
+    private static final double SEQUENCE_WEIGHT = 0.148921;
+    private static final double LENGTH_WEIGHT = 0.308775;
 
     /**
      * 计算两个源代码的相似度
@@ -25,38 +31,36 @@ public class SimilarityCalculator {
      * @return 相似度值 (0.0 ~ 1.0)
      */
     public static double calculate(String code1, String code2) {
-        // 1. 预处理
+        // 1. 预处理：去除注释、字符串字面量等噪声
         String processed1 = Preprocessor.process(code1);
         String processed2 = Preprocessor.process(code2);
 
-        // 2. 词法分析
+        // 2. 词法分析：将代码切分为Token流
         ArrayList<String> tokens1 = Lexer.tokenize(processed1);
         ArrayList<String> tokens2 = Lexer.tokenize(processed2);
 
-        // 3. 关键字分析
+        // 3. 关键字分析：统计Java关键字频次并向量化
         HashMap<Integer> kwMap1 = KeywordAnalyzer.analyze(tokens1);
         HashMap<Integer> kwMap2 = KeywordAnalyzer.analyze(tokens2);
         FrequencyVector kwVec1 = KeywordAnalyzer.toVector(kwMap1);
         FrequencyVector kwVec2 = KeywordAnalyzer.toVector(kwMap2);
 
-        // 4. 运算符分析
+        // 4. 运算符分析：统计运算符频次并向量化
         HashMap<Integer> opMap1 = OperatorAnalyzer.analyze(tokens1);
         HashMap<Integer> opMap2 = OperatorAnalyzer.analyze(tokens2);
         FrequencyVector opVec1 = OperatorAnalyzer.toVector(opMap1);
         FrequencyVector opVec2 = OperatorAnalyzer.toVector(opMap2);
 
-        // 5. 标识符分析
-        HashMap<Integer> idMap1 = IdentifierAnalyzer.analyzeNormalized(tokens1);
-        HashMap<Integer> idMap2 = IdentifierAnalyzer.analyzeNormalized(tokens2);
-        double idSim = cosineSimilaritySparseCounts(idMap1, idMap2);
+        // 5. 标识符序列分析：提取归一化后的标识符流并计算结构相似度
+        double idSim = calculateIdentifierSequenceSimilarity(tokens1, tokens2);
 
-        // 6. 计算各维度相似度
+        // 6. 计算各维度相似度：使用余弦相似度衡量向量间的分布一致性
         double kwSim = FrequencyVector.cosineSimilarity(kwVec1, kwVec2);
         double opSim = FrequencyVector.cosineSimilarity(opVec1, opVec2);
         double seqSim = calculateNormalizedTokenNGramSimilarity(tokens1, tokens2);
         double lenSim = calculateTokenLengthSimilarity(tokens1, tokens2);
 
-        // 7. 加权综合
+        // 7. 加权综合：将各维度得分按权重累加得到最终结果
         double similarity = KEYWORD_WEIGHT * kwSim
                           + IDENTIFIER_WEIGHT * idSim
                           + OPERATOR_WEIGHT * opSim
@@ -105,6 +109,27 @@ public class SimilarityCalculator {
         );
 
         return 0.05 * s2 + 0.08 * s3 + 0.10 * s4 + 0.12 * s5 + 0.15 * s6 + 0.20 * s7 + 0.30 * s8;
+    }
+
+    /**
+     * 标识符序列结构相似度：
+     * 1) 从 token 流中提取标识符序列
+     * 2) 按首次出现顺序归一化为 ID0/ID1/...
+     * 3) 对 ID 序列做 n-gram 余弦（偏向长 n-gram）
+     *
+     * 这样对“纯重命名”不敏感，同时能更好区分不同实现的标识符使用模式。
+     */
+    private static double calculateIdentifierSequenceSimilarity(ArrayList<String> tokens1, ArrayList<String> tokens2) {
+        ArrayList<String> ids1 = IdentifierAnalyzer.normalizedIdentifierSequence(tokens1);
+        ArrayList<String> ids2 = IdentifierAnalyzer.normalizedIdentifierSequence(tokens2);
+
+        double s2 = cosineSimilaritySparseCounts(NGramAnalyzer.analyzeNGrams(ids1, 2), NGramAnalyzer.analyzeNGrams(ids2, 2));
+        double s3 = cosineSimilaritySparseCounts(NGramAnalyzer.analyzeNGrams(ids1, 3), NGramAnalyzer.analyzeNGrams(ids2, 3));
+        double s4 = cosineSimilaritySparseCounts(NGramAnalyzer.analyzeNGrams(ids1, 4), NGramAnalyzer.analyzeNGrams(ids2, 4));
+        double s5 = cosineSimilaritySparseCounts(NGramAnalyzer.analyzeNGrams(ids1, 5), NGramAnalyzer.analyzeNGrams(ids2, 5));
+        double s6 = cosineSimilaritySparseCounts(NGramAnalyzer.analyzeNGrams(ids1, 6), NGramAnalyzer.analyzeNGrams(ids2, 6));
+
+        return 0.10 * s2 + 0.15 * s3 + 0.20 * s4 + 0.25 * s5 + 0.30 * s6;
     }
 
     private static double cosineSimilaritySparseCounts(HashMap<Integer> map1, HashMap<Integer> map2) {

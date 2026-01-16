@@ -67,9 +67,20 @@ public class FrequencyVector {
     }
 
     /**
-     * 计算余弦相似度（增强方案）
-     * cos(θ) = (X1·X2) / (|X1| × |X2|)
-     * 返回值范围 [0, 1]，1表示完全相似
+     * 计算余弦相似度 (Cosine Similarity)
+     * 
+     * 数学公式：
+     * cos(θ) = (v1 · v2) / (||v1|| * ||v2||)
+     * 其中 (v1 · v2) 是向量点积，||v|| 是向量的模（欧几里得长度）。
+     * 
+     * 物理意义：
+     * 余弦相似度衡量的是两个向量在空间中的“夹角”大小，而不是绝对长度。
+     * 在代码分析中，这意味着它关注的是“特征分布的比例”是否一致。
+     * 例如：代码 A 中 if 出现了 10 次，for 出现了 5 次；
+     *       代码 B 中 if 出现了 20 次，for 出现了 10 次。
+     * 尽管绝对次数不同，但它们的余弦相似度为 1.0（完全一致），这能有效处理代码扩写的情况。
+     * 
+     * @return 相似度值 [0, 1]，1 表示方向完全相同，0 表示完全正交（无共同特征）。
      */
     public static double cosineSimilarity(FrequencyVector v1, FrequencyVector v2) {
         if (v1.dimension != v2.dimension) {
@@ -80,11 +91,14 @@ public class FrequencyVector {
         double norm2 = 0.0;
 
         for (int i = 0; i < v1.dimension; i++) {
-            dotProduct += v1.data[i] * v2.data[i];
-            norm1 += v1.data[i] * v1.data[i];
-            norm2 += v2.data[i] * v2.data[i];
+            double a = v1.data[i];
+            double b = v2.data[i];
+            dotProduct += a * b;
+            norm1 += a * a;
+            norm2 += b * b;
         }
 
+        // 处理全零向量的情况，防止除以零
         if (norm1 == 0 && norm2 == 0) return 1.0;
         if (norm1 == 0 || norm2 == 0) return 0.0;
         return dotProduct / (Math.sqrt(norm1) * Math.sqrt(norm2));

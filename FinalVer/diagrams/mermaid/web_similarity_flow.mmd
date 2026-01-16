@@ -1,0 +1,78 @@
+%%{init: {'flowchart': {'curve': 'stepAfter', 'nodeSpacing': 60, 'rankSpacing': 80}}}%%
+flowchart TD
+    %% ===== 样式定义（必须）=====
+    classDef empty width:0px,height:0px
+    classDef startEnd fill:#90EE90,stroke:#2d6a2d,stroke-width:2px
+    classDef process fill:#E6E6FA,stroke:#666,stroke-width:1px
+    classDef decision fill:#FFFACD,stroke:#b8860b,stroke-width:1px
+    classDef error fill:#FFB6C1,stroke:#8b0000,stroke-width:1px
+
+    %% ===== 节点定义 =====
+    start([开始]):::startEnd
+    run[/运行 ./run.sh PORT/]:::process
+    compile[编译 Java 源码（javac）]:::process
+    serve[启动 HTTP 服务 ServerMain]:::process
+    openPage[/浏览器打开 /index.html/]:::process
+
+    checkInput{Code A / Code B 是否齐全?}:::decision
+    inputErr[提示“缺少输入”】【前端】]:::error
+
+    post[POST /api/similarity<br/>JSON: code1, code2]:::process
+    recv[服务端接收请求]:::process
+
+    methodOk{HTTP 方法是 POST?}:::decision
+    resp405[/返回 405 Method Not Allowed/]:::error
+
+    payloadOk{JSON payload 合法?}:::decision
+    resp400[/返回 400 Invalid JSON payload/]:::error
+
+    calcStart[调用 SimilarityCalculator.calculate]:::process
+    preprocess[预处理 Preprocessor.process]:::process
+    tokenize[词法分析 Lexer.tokenize]:::process
+
+    J1[ ]:::empty
+    kwSim[关键字相似度 kwSim]:::process
+    opSim[运算符相似度 opSim]:::process
+    idSim[标识符相似度 idSim]:::process
+    seqSim[N-Gram 相似度 seqSim]:::process
+    lenSim[长度相似度 lenSim]:::process
+
+    J2[ ]:::empty
+    weight[按权重融合 5 维度]:::process
+    resp200[/返回 200 JSON: similarity/]:::process
+
+    J3[ ]:::empty
+    uiHandle[前端解析响应并更新 UI]:::process
+    ok{响应是否成功?}:::decision
+    uiErr[显示“计算失败”】【含状态码/异常】]:::error
+    uiRender[动画渲染分数 + 结论]:::process
+    finish([结束]):::startEnd
+
+    %% ===== 连接关系 =====
+    start --> run --> compile --> serve --> openPage --> checkInput
+    checkInput -->|否| inputErr --> checkInput
+    checkInput -->|是| post --> recv --> methodOk
+
+    methodOk -->|否| resp405 --- J3
+    methodOk -->|是| payloadOk
+
+    payloadOk -->|否| resp400 --- J3
+    payloadOk -->|是| calcStart --> preprocess --> tokenize
+
+    tokenize --- J1
+    J1 --> kwSim
+    J1 --> opSim
+    J1 --> idSim
+    J1 --> seqSim
+    J1 --> lenSim
+
+    kwSim --- J2
+    opSim --- J2
+    idSim --- J2
+    seqSim --- J2
+    lenSim --- J2
+    J2 --> weight --> resp200 --- J3
+
+    J3 --> uiHandle --> ok
+    ok -->|否| uiErr --> checkInput
+    ok -->|是| uiRender --> finish
