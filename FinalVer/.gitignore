@@ -4,6 +4,10 @@
 # macOS
 .DS_Store
 
+# Python / uv
+.venv/
+.python-version
+
 # Java build artifacts
 *.jar
 *.war
@@ -20,4 +24,3 @@ build/
 .idea/
 *.iml
 .vscode/
-
