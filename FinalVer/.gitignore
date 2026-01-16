@@ -1,0 +1,23 @@
+*.class
+*.log
+
+# macOS
+.DS_Store
+
+# Java build artifacts
+*.jar
+*.war
+*.ear
+hs_err_pid*
+
+# Common build dirs
+bin/
+out/
+target/
+build/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+

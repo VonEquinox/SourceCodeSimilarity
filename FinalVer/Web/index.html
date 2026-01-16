@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Code Similarity — Apple-style UI</title>
+  <meta name="color-scheme" content="light dark" />
+  <style>
+    /* =========================
+       Apple-ish Design System
+       ========================= */
+    :root{
+      --bg0:#f6f7fb;
+      --bg1:#ffffff;
+      --text:#0b0c0f;
+      --muted:#5b6472;
+      --hair:rgba(15,20,30,.12);
+      --shadow: 0 30px 90px rgba(0,0,0,.12);
+      --shadow2: 0 14px 40px rgba(0,0,0,.10);
+      --glass: rgba(255,255,255,.70);
+      --glass2: rgba(255,255,255,.45);
+      --accent:#0071e3;
+      --accent2:#34c759;
+      --warn:#ff9f0a;
+      --danger:#ff453a;
+      --codebg: rgba(0,0,0,.03);
+      --ringbg: rgba(15,20,30,.10);
+      --focus: 0 0 0 4px rgba(0,113,227,.20);
+      --radius: 22px;
+      --radius2: 16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Display","SF Pro Text","PingFang SC","Noto Sans SC", "Helvetica Neue", Arial, "Apple Color Emoji","Segoe UI Emoji";
+      --ease: cubic-bezier(.2,.8,.2,1);
+      --ease2: cubic-bezier(.16,1,.3,1);
+      --gridMax: 1160px;
+    }
+
+    @media (prefers-color-scheme: dark){
+      :root{
+        --bg0:#07080c;
+        --bg1:#0b0d12;
+        --text:#f3f6ff;
+        --muted:#a8b1c2;
+        --hair:rgba(255,255,255,.10);
+        --glass: rgba(18,20,28,.58);
+        --glass2: rgba(18,20,28,.36);
+        --shadow: 0 30px 90px rgba(0,0,0,.55);
+        --shadow2: 0 14px 40px rgba(0,0,0,.45);
+        --codebg: rgba(255,255,255,.05);
+        --ringbg: rgba(255,255,255,.12);
+        --focus: 0 0 0 4px rgba(0,113,227,.26);
+      }
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: var(--sans);
+      color: var(--text);
+      background:
+        radial-gradient(1200px 700px at 10% 5%, rgba(0,113,227,.18), transparent 60%),
+        radial-gradient(1000px 800px at 90% 15%, rgba(52,199,89,.12), transparent 55%),
+        radial-gradient(900px 900px at 50% 110%, rgba(255,159,10,.10), transparent 55%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+
+    /* Subtle animated “Apple keynote” blobs */
+    .bg-blobs{
+      position:fixed; inset:-20vh -20vw;
+      pointer-events:none; z-index:-1;
+      filter: blur(40px);
+      opacity:.85;
+      transform: translateZ(0);
+    }
+    .blob{
+      position:absolute;
+      width: 42vw; height: 42vw;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 30%, rgba(0,113,227,.40), transparent 60%),
+                  radial-gradient(circle at 70% 60%, rgba(52,199,89,.32), transparent 62%),
+                  radial-gradient(circle at 40% 80%, rgba(255,159,10,.22), transparent 60%);
+      mix-blend-mode: screen;
+      animation: floaty 18s var(--ease2) infinite;
+    }
+    .blob:nth-child(1){left: -6vw; top:-10vh; animation-duration: 20s;}
+    .blob:nth-child(2){
+      width: 36vw; height: 36vw;
+      right: -10vw; top: -6vh;
+      background: radial-gradient(circle at 40% 40%, rgba(52,199,89,.34), transparent 60%),
+                  radial-gradient(circle at 65% 70%, rgba(0,113,227,.26), transparent 62%),
+                  radial-gradient(circle at 35% 75%, rgba(255,69,58,.18), transparent 60%);
+      animation-duration: 22s;
+      animation-delay: -6s;
+    }
+    .blob:nth-child(3){
+      width: 46vw; height: 46vw;
+      left: 18vw; bottom:-18vh;
+      background: radial-gradient(circle at 40% 40%, rgba(255,159,10,.28), transparent 62%),
+                  radial-gradient(circle at 60% 70%, rgba(0,113,227,.22), transparent 64%),
+                  radial-gradient(circle at 30% 75%, rgba(52,199,89,.18), transparent 65%);
+      animation-duration: 26s;
+      animation-delay: -10s;
+    }
+    @keyframes floaty{
+      0%{transform: translate3d(0,0,0) scale(1);}
+      40%{transform: translate3d(6vw,4vh,0) scale(1.04) rotate(6deg);}
+      70%{transform: translate3d(-4vw,6vh,0) scale(.98) rotate(-5deg);}
+      100%{transform: translate3d(0,0,0) scale(1);}
+    }
+
+    /* =========================
+       Layout
+       ========================= */
+    .wrap{
+      width:min(var(--gridMax), 92vw);
+      margin: 0 auto;
+      padding: 18px 0 42px;
+    }
+
+    header{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter: blur(18px) saturate(1.2);
+      -webkit-backdrop-filter: blur(18px) saturate(1.2);
+      background: linear-gradient(180deg, rgba(255,255,255,.35), rgba(255,255,255,.10));
+      border-bottom: 1px solid var(--hair);
+    }
+    @media (prefers-color-scheme: dark){
+      header{
+        background: linear-gradient(180deg, rgba(14,16,22,.55), rgba(14,16,22,.20));
+      }
+    }
+    .nav{
+      width:min(var(--gridMax), 92vw);
+      margin:0 auto;
+      height:62px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+    }
+    .brand{
+      display:flex; align-items:center; gap:10px;
+      user-select:none;
+    }
+    .logo{
+      width:28px;height:28px;border-radius:9px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.95), rgba(255,255,255,.30) 60%, rgba(255,255,255,.06));
+      border: 1px solid var(--hair);
+      box-shadow: 0 10px 26px rgba(0,0,0,.10);
+      position:relative;
+      overflow:hidden;
+    }
+    .logo:before{
+      content:"";
+      position:absolute; inset:-40%;
+      background: conic-gradient(from 220deg, rgba(0,113,227,.55), rgba(52,199,89,.40), rgba(255,159,10,.35), rgba(0,113,227,.55));
+      animation: spin 6.5s linear infinite;
+      filter: blur(0px);
+      opacity:.85;
+    }
+    .logo:after{
+      content:"";
+      position:absolute; inset:1px;
+      background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,.12));
+      border-radius:8px;
+      backdrop-filter: blur(10px);
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .brand h1{
+      margin:0;
+      font-size:14px;
+      font-weight:650;
+      letter-spacing:.2px;
+    }
+    .brand p{
+      margin:0;
+      font-size:12px;
+      color: var(--muted);
+    }
+
+    .nav-actions{
+      display:flex; align-items:center; gap:10px;
+    }
+
+    .chip{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:10px 12px;
+      border-radius: 999px;
+      border:1px solid var(--hair);
+      background: var(--glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 10px 30px rgba(0,0,0,.10);
+      transition: transform .25s var(--ease), background .25s var(--ease);
+      user-select:none;
+      cursor: pointer;
+    }
+    .chip:active{transform: scale(.98)}
+    .chip small{color:var(--muted)}
+    .dot{
+      width:8px;height:8px;border-radius:999px;
+      background: var(--accent2);
+      box-shadow: 0 0 0 3px rgba(52,199,89,.18);
+    }
+
+    .btn{
+      border: 1px solid var(--hair);
+      background: rgba(255,255,255,.55);
+      color: var(--text);
+      padding: 12px 14px;
+      border-radius: 14px;
+      font-weight: 650;
+      letter-spacing: .2px;
+      cursor: pointer;
+      transition: transform .25s var(--ease), box-shadow .25s var(--ease), background .25s var(--ease);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      display:inline-flex;
+      align-items:center;
+      gap:10px;
+      user-select:none;
+    }
+    @media (prefers-color-scheme: dark){
+      .btn{background: rgba(255,255,255,.08);}
+    }
+    .btn:hover{
+      transform: translateY(-1px);
+      box-shadow: var(--shadow2);
+    }
+    .btn:active{transform: translateY(0px) scale(.99)}
+    .btn.primary{
+      border-color: rgba(0,113,227,.35);
+      background: linear-gradient(180deg, rgba(0,113,227,.95), rgba(0,113,227,.78));
+      color: #fff;
+      box-shadow: 0 18px 44px rgba(0,113,227,.28);
+    }
+    .btn.primary:hover{
+      box-shadow: 0 22px 56px rgba(0,113,227,.34);
+    }
+    .btn:focus-visible{outline:none; box-shadow: var(--focus), var(--shadow2)}
+
+    .spark{
+      width:10px;height:10px;border-radius:999px;
+      background:#fff;
+      opacity:.85;
+      box-shadow: 0 0 0 4px rgba(255,255,255,.18);
+      animation: pulse 1.8s var(--ease) infinite;
+    }
+    @keyframes pulse{
+      0%,100%{transform: scale(1); opacity:.9}
+      50%{transform: scale(1.35); opacity:.65}
+    }
+
+    /* =========================
+       Workspace (Non-linear flow)
+       ========================= */
+    .stage{
+      margin-top: 14px;
+      display:grid;
+      grid-template-columns: 1.2fr .8fr;
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 980px){
+      .stage{grid-template-columns:1fr; }
+    }
+
+    .card{
+      border: 1px solid var(--hair);
+      background: linear-gradient(180deg, var(--glass), var(--glass2));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow2);
+      overflow:hidden;
+      position:relative;
+    }
+    .cardHeader{
+      padding: 14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--hair);
+    }
+    .cardHeader .left{
+      display:flex; align-items:center; gap: 10px;
+      min-width: 0;
+    }
+    .tag{
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--hair);
+      background: rgba(255,255,255,.35);
+      color: var(--text);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing:.2px;
+      white-space:nowrap;
+    }
+    @media (prefers-color-scheme: dark){
+      .tag{background: rgba(255,255,255,.08);}
+    }
+    .cardHeader h4{
+      margin:0;
+      font-size: 13px;
+      font-weight: 720;
+      letter-spacing: .2px;
+    }
+    .tools{
+      display:flex;
+      gap: 8px;
+      align-items:center;
+      flex-wrap: wrap;
+      justify-content:flex-end;
+    }
+    .toolbtn{
+      border: 1px solid var(--hair);
+      background: rgba(255,255,255,.35);
+      padding: 8px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      color: var(--text);
+      cursor:pointer;
+      transition: transform .25s var(--ease), background .25s var(--ease);
+      user-select:none;
+    }
+    @media (prefers-color-scheme: dark){
+      .toolbtn{background: rgba(255,255,255,.08);}
+    }
+    .toolbtn:hover{transform: translateY(-1px)}
+    .toolbtn:active{transform: translateY(0) scale(.99)}
+    .toolbtn:focus-visible{outline:none; box-shadow: var(--focus)}
+
+    .workspace{
+      padding: 14px;
+    }
+
+    .grid2{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    @media (max-width: 980px){
+      .grid2{grid-template-columns:1fr;}
+    }
+
+    .codeBox{
+      border: 1px solid var(--hair);
+      background: rgba(255,255,255,.40);
+      border-radius: var(--radius2);
+      overflow:hidden;
+      position:relative;
+      min-height: 290px;
+      display:flex;
+      flex-direction:column;
+      box-shadow: 0 10px 26px rgba(0,0,0,.08);
+      transition: transform .45s var(--ease2), box-shadow .45s var(--ease2);
+    }
+    @media (prefers-color-scheme: dark){
+      .codeBox{background: rgba(255,255,255,.06);}
+    }
+    .codeBox:focus-within{
+      box-shadow: 0 18px 46px rgba(0,0,0,.14);
+      transform: translateY(-2px);
+    }
+    .codeTop{
+      padding: 10px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 10px;
+      border-bottom: 1px solid var(--hair);
+    }
+    .codeTop .label{
+      display:flex; align-items:center; gap:10px; min-width:0;
+    }
+    .badge{
+      width: 10px; height:10px; border-radius:999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(0,113,227,.18);
+      flex: none;
+    }
+    .codeTop strong{
+      font-size: 12px;
+      font-weight: 780;
+      letter-spacing:.2px;
+    }
+    .codeTop span{
+      font-size: 12px;
+      color: var(--muted);
+      white-space:nowrap;
+    }
+
+    .codeArea{
+      position:relative;
+      flex:1;
+      display:flex;
+      background: var(--codebg);
+    }
+    textarea.code{
+      width:100%;
+      border:0;
+      outline: none;
+      resize:none;
+      padding: 14px 14px 14px 14px;
+      font-family: var(--mono);
+      font-size: 12.5px;
+      line-height: 1.55;
+      background: transparent;
+      color: var(--text);
+      caret-color: var(--accent);
+      tab-size: 2;
+    }
+    textarea.code::placeholder{color: rgba(120,130,150,.95)}
+    @media (prefers-color-scheme: dark){
+      textarea.code::placeholder{color: rgba(160,175,200,.55)}
+    }
+
+    /* Scan overlay animation */
+    .scan{
+      pointer-events:none;
+      position:absolute; inset:0;
+      opacity:0;
+      background:
+        linear-gradient(180deg, transparent, rgba(0,113,227,.14), transparent),
+        repeating-linear-gradient(180deg, rgba(255,255,255,.08) 0, rgba(255,255,255,.08) 1px, transparent 1px, transparent 8px);
+      mix-blend-mode: overlay;
+      transform: translateY(-25%);
+      filter: blur(.2px);
+    }
+    .scanning .scan{
+      opacity:1;
+      animation: scanMove 1.25s var(--ease2) infinite;
+    }
+    @keyframes scanMove{
+      0%{transform: translateY(-30%); opacity:.0}
+      15%{opacity:.85}
+      70%{opacity:.70}
+      100%{transform: translateY(30%); opacity:0}
+    }
+
+    input[type="file"]{display:none}
+
+    /* CTA footer in workspace */
+    .ctaRow{
+      margin-top: 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      flex-wrap:wrap;
+      padding: 0 2px;
+    }
+    .hint{
+      font-size: 12px;
+      color: var(--muted);
+      line-height:1.6;
+    }
+    .hint b{color:var(--text)}
+    .compute{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+    }
+
+    /* =========================
+       Result Panel
+       ========================= */
+    .resultCard{
+      position: sticky;
+      top: 86px;
+      border-radius: var(--radius);
+      border: 1px solid var(--hair);
+      background: linear-gradient(180deg, var(--glass), var(--glass2));
+      box-shadow: var(--shadow2);
+      overflow:hidden;
+    }
+    @media (max-width: 980px){
+      .resultCard{position:relative; top:0;}
+    }
+    .resultTop{
+      padding: 16px;
+      border-bottom: 1px solid var(--hair);
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap: 12px;
+    }
+    .resultTop h3{
+      margin:0;
+      font-size: 14px;
+      font-weight: 780;
+      letter-spacing:.2px;
+    }
+    .resultTop p{
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height:1.55;
+      max-width: 44ch;
+    }
+
+    .resultBody{
+      padding: 16px;
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .ringWrap{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 10px 0 4px;
+    }
+    .ring{
+      --p: 0; /* 0..1 */
+      width: 210px; height: 210px;
+      border-radius: 999px;
+      position:relative;
+      display:grid;
+      place-items:center;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.55) 0 56%, transparent 57%),
+        conic-gradient(from 270deg,
+          rgba(0,113,227,.95) calc(var(--p) * 360deg),
+          var(--ringbg) 0);
+      box-shadow: 0 22px 58px rgba(0,0,0,.12);
+      border: 1px solid var(--hair);
+      overflow:hidden;
+      transform: translateZ(0);
+    }
+    @media (prefers-color-scheme: dark){
+      .ring{
+        background:
+          radial-gradient(circle at 50% 50%, rgba(255,255,255,.08) 0 56%, transparent 57%),
+          conic-gradient(from 270deg,
+            rgba(0,113,227,.95) calc(var(--p) * 360deg),
+            var(--ringbg) 0);
+      }
+    }
+    .ring:before{
+      content:"";
+      position:absolute; inset:-20%;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.25), transparent 55%),
+                  radial-gradient(circle at 70% 60%, rgba(0,113,227,.15), transparent 60%);
+      opacity: .85;
+      animation: shimmer 2.8s var(--ease2) infinite;
+      mix-blend-mode: overlay;
+    }
+    @keyframes shimmer{
+      0%{transform: translate3d(-2%, -2%, 0) rotate(0deg)}
+      50%{transform: translate3d(2%, 1%, 0) rotate(8deg)}
+      100%{transform: translate3d(-2%, -2%, 0) rotate(0deg)}
+    }
+
+    .ringInner{
+      width: 132px; height: 132px;
+      border-radius: 999px;
+      border: 1px solid var(--hair);
+      background: linear-gradient(180deg, rgba(255,255,255,.70), rgba(255,255,255,.35));
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      gap: 2px;
+      position:relative;
+      z-index:1;
+      box-shadow: 0 18px 50px rgba(0,0,0,.14);
+    }
+    @media (prefers-color-scheme: dark){
+      .ringInner{
+        background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.06));
+      }
+    }
+    .big{
+      font-size: 38px;
+      font-weight: 820;
+      letter-spacing:-.6px;
+      line-height:1;
+    }
+    .unit{
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing:.3px;
+    }
+
+    .metrics{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .metric{
+      border: 1px solid var(--hair);
+      background: rgba(255,255,255,.35);
+      border-radius: 18px;
+      padding: 12px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      transition: transform .35s var(--ease2);
+      position:relative;
+      overflow:hidden;
+    }
+    @media (prefers-color-scheme: dark){
+      .metric{background: rgba(255,255,255,.06);}
+    }
+    .metric:hover{transform: translateY(-1px)}
+    .metric small{display:block; color: var(--muted); font-size: 12px; margin-bottom:6px}
+    .metric strong{font-size: 13px; letter-spacing:.2px}
+    .bar{
+      margin-top: 10px;
+      height: 8px;
+      border-radius: 999px;
+      background: rgba(0,0,0,.08);
+      overflow:hidden;
+      border: 1px solid var(--hair);
+    }
+    @media (prefers-color-scheme: dark){
+      .bar{background: rgba(255,255,255,.08);}
+    }
+    .bar > i{
+      display:block; height:100%;
+      width: 0%;
+      border-radius:999px;
+      background: linear-gradient(90deg, rgba(0,113,227,.95), rgba(52,199,89,.90));
+      transition: width .8s var(--ease2);
+    }
+
+    .status{
+      border: 1px solid var(--hair);
+      background: rgba(255,255,255,.30);
+      border-radius: 18px;
+      padding: 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 12px;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+    }
+    @media (prefers-color-scheme: dark){
+      .status{background: rgba(255,255,255,.06);}
+    }
+    .status .left{
+      display:flex; align-items:center; gap: 10px;
+      min-width:0;
+    }
+    .orb{
+      width: 34px; height: 34px;
+      border-radius: 12px;
+      border: 1px solid var(--hair);
+      background: conic-gradient(from 220deg, rgba(0,113,227,.90), rgba(52,199,89,.75), rgba(255,159,10,.55), rgba(0,113,227,.90));
+      box-shadow: 0 14px 36px rgba(0,0,0,.14);
+      position:relative;
+      overflow:hidden;
+      flex:none;
+    }
+    .orb:after{
+      content:"";
+      position:absolute; inset:1px;
+      border-radius: 11px;
+      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.40), transparent 55%);
+    }
+    .status strong{
+      font-size: 13px;
+      letter-spacing:.2px;
+      display:block;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      max-width: 26ch;
+    }
+    .status small{
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* =========================
+       Flow choreography (non-linear)
+       ========================= */
+    .stage[data-layout="focus"] .resultCard{
+      animation: popIn .55s var(--ease2) both;
+    }
+    @keyframes popIn{
+      from{transform: translateY(12px) scale(.98); opacity:.0}
+      to{transform: translateY(0) scale(1); opacity:1}
+    }
+    .shake{
+      animation: shake .5s var(--ease) 1;
+    }
+    @keyframes shake{
+      0%,100%{transform: translateX(0)}
+      25%{transform: translateX(6px)}
+      50%{transform: translateX(-6px)}
+      75%{transform: translateX(4px)}
+    }
+
+    /* Reduce motion */
+    @media (prefers-reduced-motion: reduce){
+      *{animation: none !important; transition: none !important}
+      .bg-blobs{display:none}
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-blobs" aria-hidden="true">
+    <div class="blob"></div>
+    <div class="blob"></div>
+    <div class="blob"></div>
+  </div>
+
+  <header>
+    <div class="nav">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <h1>Code Similarity</h1>
+          <p>Apple 风格 · 动画驱动的对比体验</p>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <main class="wrap">
+
+    <section class="stage" id="stage" data-layout="idle">
+      <!-- Workspace -->
+      <div class="card" id="workspaceCard">
+        <div class="cardHeader">
+          <div class="left">
+            <div>
+              <h4>输入两份代码</h4>
+              <div style="font-size:12px;color:var(--muted);line-height:1.25">
+                支持粘贴与文件导入
+              </div>
+            </div>
+          </div>
+
+          <div class="tools">
+            <button class="toolbtn" id="btnSwap">交换 A/B</button>
+          </div>
+        </div>
+
+        <div class="workspace" id="workspace">
+          <div class="grid2">
+            <div class="codeBox" id="boxA">
+              <div class="codeTop">
+                <div class="label">
+                  <span class="badge" aria-hidden="true"></span>
+                  <div style="display:flex;flex-direction:column">
+                    <strong>Code A</strong>
+                    <span id="subA">粘贴 / 导入</span>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <label class="toolbtn" for="fileA">导入</label>
+                  <button class="toolbtn" data-clear="A">清空</button>
+                </div>
+              </div>
+
+              <div class="codeArea">
+                <textarea id="codeA" class="code" spellcheck="false" placeholder="// 在这里粘贴你的第一份代码…
+function hello(name){
+  return `Hello, ${name}!`
+}"></textarea>
+                <div class="scan" aria-hidden="true"></div>
+              </div>
+
+              <input id="fileA" type="file" accept=".txt,.js,.ts,.py,.java,.go,.rs,.cpp,.c,.cs,.php,.rb,.kt,.swift,.m,.json,.yaml,.yml,.md" />
+            </div>
+
+            <div class="codeBox" id="boxB">
+              <div class="codeTop">
+                <div class="label">
+                  <span class="badge" aria-hidden="true" style="background: var(--accent2); box-shadow: 0 0 0 4px rgba(52,199,89,.18)"></span>
+                  <div style="display:flex;flex-direction:column">
+                    <strong>Code B</strong>
+                    <span id="subB">粘贴 / 导入</span>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <label class="toolbtn" for="fileB">导入</label>
+                  <button class="toolbtn" data-clear="B">清空</button>
+                </div>
+              </div>
+
+              <div class="codeArea">
+                <textarea id="codeB" class="code" spellcheck="false" placeholder="// 在这里粘贴你的第二份代码…
+def hello(name):
+    return f&quot;Hello, {name}!&quot;"></textarea>
+                <div class="scan" aria-hidden="true"></div>
+              </div>
+
+              <input id="fileB" type="file" accept=".txt,.js,.ts,.py,.java,.go,.rs,.cpp,.c,.cs,.php,.rb,.kt,.swift,.m,.json,.yaml,.yml,.md" />
+            </div>
+          </div>
+
+          <div class="ctaRow">
+            <div class="hint" id="ctaHint">
+              直接粘贴两段代码或导入文件，然后点击<b>计算</b>。
+            </div>
+            <div class="compute">
+              <button class="btn primary" id="btnCompute">
+                <span class="spark" aria-hidden="true"></span>
+                计算相似度
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <aside class="resultCard" id="resultCard">
+        <div class="resultTop">
+          <div>
+            <h3>Similarity</h3>
+            <p>结果来自后端相似度计算接口。</p>
+          </div>
+        </div>
+
+        <div class="resultBody">
+          <div class="ringWrap">
+            <div class="ring" id="ring" style="--p:0">
+              <div class="ringInner">
+                <div class="big" id="scoreText">—</div>
+                <div class="unit" id="scoreUnit">%</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="status">
+            <div class="left">
+              <div class="orb" aria-hidden="true"></div>
+              <div style="min-width:0">
+                <strong id="verdict">等待输入</strong>
+                <small id="verdictHint">填入两段代码后点击“计算相似度”。</small>
+              </div>
+            </div>
+            <span class="pill" id="badgeLevel">Idle</span>
+          </div>
+        </div>
+      </aside>
+    </section>
+  </main>
+  <script src="app.js" defer></script>
+</body>
+</html>

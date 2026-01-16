@@ -26,12 +26,23 @@ public class OperatorAnalyzer {
         for (int i = 0; i < tokens.size(); i++) {
             String token = tokens.get(i);
             if (JavaConstants.isOperator(token)) {
+                if (isDelimiter(token)) {
+                    continue;
+                }
                 int count = freqMap.getOrDefault(token, 0);
                 freqMap.put(token, count + 1);
             }
         }
 
         return freqMap;
+    }
+
+    private static boolean isDelimiter(String token) {
+        return "(".equals(token) || ")".equals(token)
+            || "{".equals(token) || "}".equals(token)
+            || "[".equals(token) || "]".equals(token)
+            || ";".equals(token) || ",".equals(token)
+            || ".".equals(token) || "@".equals(token);
     }
 
     /**

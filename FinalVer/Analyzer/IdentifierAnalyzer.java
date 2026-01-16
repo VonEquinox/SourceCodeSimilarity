@@ -29,6 +29,36 @@ public class IdentifierAnalyzer {
     }
 
     /**
+     * 对标识符做“按首次出现顺序编号”的归一化，并统计频度。
+     * 例：第一个出现的标识符 -> ID0，第二个 -> ID1，...
+     * 目的：提高对纯重命名的鲁棒性，同时保留“哪个标识符更常用”的结构差异。
+     */
+    public static HashMap<Integer> analyzeNormalized(ArrayList<String> tokens) {
+        HashMap<Integer> freqMap = new HashMap<>();
+        HashMap<Integer> idMap = new HashMap<>();
+        int nextId = 0;
+
+        for (int i = 0; i < tokens.size(); i++) {
+            String token = tokens.get(i);
+            if (!isIdentifier(token)) {
+                continue;
+            }
+
+            Integer existing = idMap.get(token);
+            if (existing == null) {
+                existing = nextId++;
+                idMap.put(token, existing);
+            }
+
+            String normalized = "ID" + existing;
+            int count = freqMap.getOrDefault(normalized, 0);
+            freqMap.put(normalized, count + 1);
+        }
+
+        return freqMap;
+    }
+
+    /**
      * 判断是否为用户标识符
      */
     private static boolean isIdentifier(String token) {
